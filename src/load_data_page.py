@@ -99,11 +99,15 @@ def loader_page(driver):
     return df
 
 
+def run_parsing(df, path):
+    with open(path, 'wb') as f:
+        pickle.dump(df, f)
+
+
 def main():
     driver = starting_driver(EXECUTABLE_PATH)
     df = loader_page(driver)
-    with open(PATH_PAGES, 'wb') as f:
-        pickle.dump(df, f)
+    run_parsing(df, PATH_PAGES)
 
 
 if __name__ == "__main__":
