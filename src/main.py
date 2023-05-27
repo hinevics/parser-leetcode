@@ -14,7 +14,9 @@ import logging
 from myconfig import (
     EXECUTABLE_PATH, MAX_PAGE,
     MIN_PAGE, ALG_URL, URL,
-    HTML_FIELD_CLASS_ALGORITHM)
+    HTML_FIELD_CLASS_ALGORITHM,
+    HTML_FIELD_CLASS_DECS_ALG,
+    HTML_CLASS_SOLS)
 
 logger = logging.getLogger('my_logger')
 logger.setLevel(logging.INFO)
@@ -24,9 +26,8 @@ console_handler.setFormatter(formatter)
 logger.addHandler(console_handler)
 
 
+global RES_DATA
 RES_DATA = []
-ALG_DATA = dict()
-SOLUTION = dict()
 
 
 def color_log_green(text):
@@ -35,8 +36,6 @@ def color_log_green(text):
 
 def color_log_red(text):
     return f'\033[31m{text}\033[0m'
-
-
 
 
 def get_driver():
@@ -80,11 +79,33 @@ def main():
         for alg in tqdm.tqdm(algs_divs):
             text = alg.find('a').text
             name_alg = ' '.join(re.findall(pattern=r'[a-zA-Z]+', string=text), string=text)
-            url = urljoin(URL, alg.find('a')['href'])
-            driver.get(url)
+            url_alg = urljoin(URL, alg.find('a')['href'])
+            driver.get(url_alg)
             time.sleep(2)
             content_alg = driver.page_source
-            
+            desc = parser_divs(content=content_alg, class_=HTML_FIELD_CLASS_DECS_ALG)[0].text
+            url_sols_alg = urljoin(url_alg, 'solutions/')
+            # TODO: Вынести в отдельную функцию все driver get url wiht time sleep
+            driver.get(url_sols_alg)
+            time.sleep(2)
+            content_sols = driver.page_source
+            divs_sols: list[Tag] = parser_divs(content_sols, HTML_CLASS_SOLS)
+            for sol in tqdm.tqdm(divs_sols):
+                name_sol = sol.text
+                url_page_sol = urljoin(URL, divs_sols[0].a['href'])
+                # path_sol_1 = 'https://leetcode.com' + divs_sols[0].a['href']
+                driver.get(url_page_sol)
+                time.sleep(2)
+                content_sol_page = driver.page_source
+                div_sol_page = parser_divs(content_sol_page, class_='break-words')
+                text_sol = div_sol_page[0].text
+                divs_code_sol = parser_divs(content_sol_page, class_='group relative')
+                code_sol = divs_code_sol[0].text
+                divs_tag = parser_divs(
+                    content=content_sol_page,
+                    class_='flex flex-grow flex-nowrap items-center gap-2 overflow-hidden my-1'
+                )
+                tags = {t.text for t in divs_tag[0].find_all('div')}
         break
 
 
