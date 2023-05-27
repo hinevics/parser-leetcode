@@ -132,3 +132,4 @@ data/
 
 chromedriver/
 /.vscode
+/data
