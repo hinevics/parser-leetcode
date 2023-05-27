@@ -8,7 +8,6 @@ URL = r'https://leetcode.com'
 MAX_PAGE = 24
 MIN_PAGE = 1
 REG_NUMBER_ALG = r'\d+(?=\.)'
-REG_NAME_ALG = r'[a-zA-Z]+'
 EXECUTABLE_PATH = os.getenv("EXECUTABLE_PATH")
 
 # HTML CLASS

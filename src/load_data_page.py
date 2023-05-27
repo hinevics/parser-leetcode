@@ -11,7 +11,7 @@ import json
 import threading
 import concurrent.futures
 
-from config import (
+from src.myconfig import (
     EXECUTABLE_PATH,
     PATH_PAGES,
     URL,
