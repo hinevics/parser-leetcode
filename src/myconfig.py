@@ -14,3 +14,4 @@ EXECUTABLE_PATH = os.getenv("EXECUTABLE_PATH")
 HTML_FIELD_CLASS_ALGORITHM = r'odd:bg-layer-1 even:bg-overlay-1 dark:odd:bg-dark-layer-bg dark:even:bg-dark-fill-4'
 HTML_FIELD_CLASS_DECS_ALG = r'_1l1MA'
 HTML_CLASS_SOLS = r'flex min-w-0 max-w-full items-center gap-2'
+HTML_CLASS_PAGE = r'flex flex-grow flex-nowrap items-center gap-2 overflow-hidden my-1'

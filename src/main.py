@@ -16,7 +16,8 @@ from myconfig import (
     MIN_PAGE, ALG_URL, URL,
     HTML_FIELD_CLASS_ALGORITHM,
     HTML_FIELD_CLASS_DECS_ALG,
-    HTML_CLASS_SOLS)
+    HTML_CLASS_SOLS,
+    HTML_CLASS_PAGE)
 
 logger = logging.getLogger('my_logger')
 logger.setLevel(logging.INFO)
@@ -24,10 +25,6 @@ console_handler = logging.StreamHandler()
 formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 console_handler.setFormatter(formatter)
 logger.addHandler(console_handler)
-
-
-global RES_DATA
-RES_DATA = []
 
 
 def color_log_green(text):
@@ -58,54 +55,61 @@ def create_url_wit_page(url_: str, page_: int):
     return new_url
 
 
-def parser_divs(content, class_):
+def parser_divs(content, class_: str) -> list[Tag]:
     soup = BeautifulSoup(content, 'html.parser')
     divs = soup.find_all(class_=class_)
     return divs
 
 
 def main():
+    RES_DATA = []
     logger.info('Connecting to the driver')
     driver = get_driver()
-    for n_page in tqdm.tqdm(MIN_PAGE, MAX_PAGE + 1):
+    for n_page in tqdm.tqdm(range(MIN_PAGE, MAX_PAGE + 1)):
         logger.info(f'Load page: {n_page}')
         url_page = create_url_wit_page(url_=ALG_URL, page_=n_page)
         driver.get(url_page)
         content_page = driver.page_source
-        time.sleep(3)
+        time.sleep(10)
         logger.info(color_log_green(f'Completed Loda page {n_page}'))
         algs_divs: list[Tag] = parser_divs(content_page, class_=HTML_FIELD_CLASS_ALGORITHM)
         # TODO: вынести в отдельную функцию
+        print(algs_divs[1])
         for alg in tqdm.tqdm(algs_divs):
+            ALG = dict()
             text = alg.find('a').text
-            name_alg = ' '.join(re.findall(pattern=r'[a-zA-Z]+', string=text), string=text)
-            url_alg = urljoin(URL, alg.find('a')['href'])
-            driver.get(url_alg)
+            ALG['name'] = ' '.join(re.findall(pattern=r'[a-zA-Z]+', string=text), string=text)
+            ALG['url'] = urljoin(URL, alg.find('a')['href'])
+            driver.get(ALG['url'])
             time.sleep(2)
             content_alg = driver.page_source
             desc = parser_divs(content=content_alg, class_=HTML_FIELD_CLASS_DECS_ALG)[0].text
-            url_sols_alg = urljoin(url_alg, 'solutions/')
+            ALG['description'] = desc
+            url_sols_alg = urljoin(ALG['url'], 'solutions/')
             # TODO: Вынести в отдельную функцию все driver get url wiht time sleep
             driver.get(url_sols_alg)
             time.sleep(2)
             content_sols = driver.page_source
-            divs_sols: list[Tag] = parser_divs(content_sols, HTML_CLASS_SOLS)
+            divs_sols: list[Tag] = parser_divs(content_sols, HTML_CLASS_SOLS) 
+            SOLUTIONS = []
             for sol in tqdm.tqdm(divs_sols):
-                name_sol = sol.text
-                url_page_sol = urljoin(URL, divs_sols[0].a['href'])
-                # path_sol_1 = 'https://leetcode.com' + divs_sols[0].a['href']
-                driver.get(url_page_sol)
+                SOL = dict()
+                SOL['name'] = sol.text
+                SOL['url'] = urljoin(URL, divs_sols[0].a['href'])
+                driver.get(SOL['url'])
                 time.sleep(2)
                 content_sol_page = driver.page_source
                 div_sol_page = parser_divs(content_sol_page, class_='break-words')
-                text_sol = div_sol_page[0].text
+                SOL['solution'] = div_sol_page[0].text
                 divs_code_sol = parser_divs(content_sol_page, class_='group relative')
-                code_sol = divs_code_sol[0].text
+                SOL['code'] = divs_code_sol[0].text
                 divs_tag = parser_divs(
                     content=content_sol_page,
-                    class_='flex flex-grow flex-nowrap items-center gap-2 overflow-hidden my-1'
-                )
-                tags = {t.text for t in divs_tag[0].find_all('div')}
+                    class_=HTML_CLASS_PAGE)
+                SOL['tags'] = {t.text for t in divs_tag[0].find_all('div')}
+                SOLUTIONS.append(SOL)
+                break
+        RES_DATA.append(ALG)
         break
 
 
