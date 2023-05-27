@@ -3,7 +3,11 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-ALG_URL = os.getenv("ALG_URL")
-URL = os.getenv("URL")
+ALG_URL = r'https://leetcode.com/problemset/algorithms'
+URL = r'https://leetcode.com'
+MAX_PAGE = 24
+MIN_PAGE = 1
+REG_NUMBER_ALG = r'\d+(?=\.)'
+REG_NAME_ALG = r'[a-zA-Z]+'
+HTML_CLASS = r'odd:bg-layer-1 even:bg-overlay-1 dark:odd:bg-dark-layer-bg dark:even:bg-dark-fill-4'
 EXECUTABLE_PATH = os.getenv("EXECUTABLE_PATH")
-PATH_PAGES = os.getenv("PATH_PAGES")
