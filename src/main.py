@@ -1,8 +1,9 @@
 # import pandas as pd
-import requests
+import json
 from bs4 import BeautifulSoup
 from bs4.element import Tag
 import re
+from selenium.common.exceptions import TimeoutException
 from selenium import webdriver
 from selenium.webdriver.firefox.options import Options as FirefoxOptions
 from selenium.webdriver.firefox.service import Service
@@ -11,7 +12,6 @@ from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from urllib.parse import urlencode, urlsplit, urlunsplit, urljoin
 import tqdm
-import time
 import logging
 
 from myconfig import (
@@ -20,12 +20,13 @@ from myconfig import (
     HTML_FIELD_CLASS_ALGORITHM,
     HTML_FIELD_CLASS_DECS_ALG,
     HTML_CLASS_SOLS,
-    HTML_CLASS_PAGE)
+    HTML_CLASS_PAGE,
+    PATH_DATA)
 
 CSS_SELECTOR_ALGS_PAGE = r'div.odd\:bg-layer-1:nth-child(2) > div:nth-child(2) > div:nth-child(1) > div:nth-child(1) > div:nth-child(1) > div:nth-child(1) > a:nth-child(1)'
-CSS_SELECTOR_ONE_ALG_PAGE = r'div.px-5:nth-child(3)'
-CSS_SELECTOR_SOLUTIONS = r'.py-3'
-CSS_SELECTOR_ONE_SOL = r'.ssg__qd-splitter-primary-w'
+CSS_SELECTOR_ONE_ALG_PAGE = r'._1l1MA'
+CSS_SELECTOR_SOLUTIONS = r'div.py-4:nth-child(1) > div:nth-child(1) > div:nth-child(1)'
+CSS_SELECTOR_ONE_SOL = r'.break-words'
 
 logger = logging.getLogger('my_logger')
 logger.setLevel(logging.INFO)
@@ -70,11 +71,18 @@ def parser_divs(content, class_: str) -> list[Tag]:
 
 
 def load_page(url, driver, css_selector):
-    driver.get(url)
-    wait = WebDriverWait(driver, 10)
-    wait.until(EC.visibility_of_element_located((By.CSS_SELECTOR, css_selector)))
-    content_page = driver.page_source
-    return content_page, driver
+    max_attempts = 2
+    current_attempt = 1
+    while current_attempt <= max_attempts:
+        try:
+            driver.get(url)
+            wait = WebDriverWait(driver, 15)
+            wait.until(EC.visibility_of_element_located((By.CSS_SELECTOR, css_selector)))
+            return driver.page_source, driver
+        except TimeoutException as e:
+            logger.error(color_log_red(f"Error: {e}"))
+            current_attempt += 1
+    return None
 
 
 def main():
@@ -85,6 +93,8 @@ def main():
         logger.info(f'Load page: {n_page}')
         url_page = create_url_wit_page(url_=ALG_URL, page_=n_page)
         content_page, driver = load_page(url=url_page, driver=driver, css_selector=CSS_SELECTOR_ALGS_PAGE)
+        if content_page is None:
+            continue
         logger.info(color_log_green(f'Completed Loda page {n_page}'))
         algs_divs: list[Tag] = parser_divs(content_page, class_=HTML_FIELD_CLASS_ALGORITHM)
         for alg in tqdm.tqdm(algs_divs):  # TODO: Вынести в отдельную функцию
@@ -93,10 +103,14 @@ def main():
             ALG['name'] = ' '.join(re.findall(pattern=r'[a-zA-Z]+', string=text))
             ALG['url'] = urljoin(URL, alg.find('a')['href'])
             content_alg, driver = load_page(url=ALG['url'], driver=driver, css_selector=CSS_SELECTOR_ONE_ALG_PAGE)
+            if content_alg is None:
+                continue
             ALG['description'] = parser_divs(content=content_alg, class_=HTML_FIELD_CLASS_DECS_ALG)[0].text
             url_sols_alg = urljoin(ALG['url'], 'solutions/')
             # TODO: Вынести в отдельную функцию все driver get url wiht time sleep
             content_sols, driver = load_page(driver=driver, url=url_sols_alg, css_selector=CSS_SELECTOR_SOLUTIONS)
+            if content_sols is None:
+                continue
             divs_sols: list[Tag] = parser_divs(content_sols, HTML_CLASS_SOLS)
             SOLUTIONS = []
             for sol in tqdm.tqdm(divs_sols):
@@ -104,18 +118,21 @@ def main():
                 SOL['name'] = sol.text
                 SOL['url'] = urljoin(URL, divs_sols[0].a['href'])
                 content_sol_page, driver = load_page(driver=driver, url=SOL['url'], css_selector=CSS_SELECTOR_ONE_SOL)
+                if content_sol_page is None:
+                    continue 
                 div_sol_page = parser_divs(content_sol_page, class_='break-words')
                 SOL['solution'] = div_sol_page[0].text
-                divs_code_sol = parser_divs(content_sol_page, class_='group relative')
-                SOL['code'] = divs_code_sol[0].text
+                divs_code_sol = parser_divs(content_sol_page, class_="px-3 py-2.5 bg-fill-3 dark:bg-dark-fill-3")
+                SOL['code'] = divs_code_sol[0].text if divs_code_sol else ''
                 divs_tag = parser_divs(
                     content=content_sol_page,
-                    class_=HTML_CLASS_PAGE)
+                    class_=HTML_CLASS_PAGE)  # TODO: Исправить class_=HTML_CLASS_PAGE
                 SOL['tags'] = list({t.text for t in divs_tag[0].find_all('div')}) if divs_tag else []
                 SOLUTIONS.append(SOL)
-                break
+            ALG['sol'] = SOLUTIONS
         RES_DATA.append(ALG)
-        break
+    with open(PATH_DATA, "w") as file:
+        json.dump(RES_DATA, file)
 
 
 if __name__ == "__main__":
