@@ -1,64 +1,91 @@
-# import pandas as pd
+# module for assembling all links to algorithms
+from typing import Any
 import json
-from bs4 import BeautifulSoup
 from bs4.element import Tag
 import re
-from urllib.parse import urlencode, urlsplit, urlunsplit, urljoin
-import logging
-from typing import Any
+from urllib.parse import urljoin
+import pathlib
+
+import webdriver_manager
+import url_manager
+import logger
+import parser_manager
 
 from myconfig import (
-    EXECUTABLE_PATH, MAX_PAGE,
-    MIN_PAGE, ALG_URL, URL,
-    HTML_FIELD_CLASS_ALGORITHM,
-    HTML_FIELD_CLASS_DECS_ALG,
-    HTML_CLASS_SOLS,
-    HTML_CLASS_PAGE,
-    PATH_DATA)
-
-logger = logging.getLogger('my_logger')
-logger.setLevel(logging.INFO)
-console_handler = logging.StreamHandler()
-formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-console_handler.setFormatter(formatter)
-logger.addHandler(console_handler)
+    ALG_URL, MIN_PAGE, MAX_PAGE,
+    CSS_SELECTOR_ALGS_PAGE, URL, HTML_FIELD_CLASS_ALGORITHM,
+    DATA_PAGE_ALGS_PATH
+)
 
 
-def color_log_green(text):
-    return f'\033[32m{text}\033[0m'
+DATA_PAGE_ALGS_PATH = pathlib.Path(DATA_PAGE_ALGS_PATH)
 
 
-def color_log_red(text):
-    return f'\033[31m{text}\033[0m'
+def get_algs(algs_divs: list[Tag]) -> list[dict[str, str]]:
+    ALGS = []
+    for alg in algs_divs:
+        ALG = dict()
+        text = alg.find('a').text
+        ALG['name'] = ' '.join(re.findall(pattern=r'[a-zA-Z]+', string=text))
+        ALG['url'] = urljoin(URL, alg.find('a')['href'])
+        ALGS.append(ALG)
+    return ALGS
 
 
-def load_page(url, driver, css_selector) -> tuple[Any, Any]:
-    max_attempts = 2
-    current_attempt = 1
-    while current_attempt <= max_attempts:
-        try:
-            driver.get(url)
-            wait = WebDriverWait(driver, 15)
-            wait.until(EC.visibility_of_element_located((By.CSS_SELECTOR, css_selector)))
-            return driver.page_source, driver
-        except TimeoutException as e:
-            logger.error(color_log_red(f"Error: {e}"))
-            current_attempt += 1
-    return None
+def check_path(path: pathlib.PosixPath) -> bool:
+    if path.exists():
+        return path
+    logger.logger.warning(f'Dir in path ({path}) not exists.')
+    path = path.mkdir(parents=True, exist_ok=True)
+    logger.logger.info(f'Dir in path ({path}) created.')
+    return path
 
 
-def get_driver():
-    options = FirefoxOptions()
-    options.add_argument('--headless')
-    firefox_service = Service(EXECUTABLE_PATH)
-    driver = webdriver.Firefox(
-        service=firefox_service,
-        options=options
-    )
-    return driver
+def saver(page_algs: list[dict[str, Any]], path: pathlib.PosixPath, n_page: int):
+    if path := check_path(path):
+        path = path.joinpath(f'{n_page}')
+        with open(file=path, mode='w', encoding='utf-8') as file:
+            json.dump(page_algs, file)
 
 
 def main():
-    logger.info('Connecting to the driver')
-    driver = get_driver()
-    type(load_page())
+    logger.logger.info('CONNECTING TO THE DRIVER.')
+    driver = webdriver_manager.get_driver()
+    stoper_loding_page = 0
+    logger.logger.info('START PARSING PAGES.')
+    for n_page in range(MIN_PAGE, MAX_PAGE + 1):
+        url_page = url_manager.create_url_wit_page(url_=ALG_URL, page_=n_page)
+        logger.logger.info(f'Page {n_page} loading.')
+        content_page, driver = webdriver_manager.get_driver_page_source(
+            url=url_page,
+            driver=driver, css_selector=CSS_SELECTOR_ALGS_PAGE)
+
+        if not content_page:
+            logger.logger.error(
+                f'PAGE={n_page}. Error when loading page {n_page}. Continue task wiht new page.'
+            )
+            continue
+
+        logger.logger.info('Search for divs.')
+        algs_divs: list[Tag] = parser_manager.parser_divs(content_page, class_=HTML_FIELD_CLASS_ALGORITHM)
+        algs = get_algs(algs_divs)
+        
+        logger.logger.info(f'Saving a page {n_page}.')
+        if algs:
+            saver(algs, path=DATA_PAGE_ALGS_PATH, n_page=n_page)
+        else:
+            if stoper_loding_page > 5:
+                logger.logger.critical(
+                    f'The parser returns empty pages. n_page={n_page}, \
+                    stoper_loding_page={stoper_loding_page}')
+                raise ValueError('The parser returns empty pages')
+            logger.logger.error('Algs empty. Next page loding')
+            stoper_loding_page += 1
+            continue
+
+        logger.logger.info(f'Page {n_page} loading completed.')
+    logger.logger.info('Done load pages')
+
+
+if __name__ == '__main__':
+    main()

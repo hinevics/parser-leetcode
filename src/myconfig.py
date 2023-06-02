@@ -10,10 +10,14 @@ MIN_PAGE = 1
 REG_NUMBER_ALG = r'\d+(?=\.)'
 EXECUTABLE_PATH = os.getenv("EXECUTABLE_PATH")
 LOG_PATH = os.getenv('LOG_PATH')
-PATH_DATA = os.getenv('PATH_DATA')
+DATA_ONE_ALG_PATH = os.getenv('DATA_ONE_ALG_PATH')
+DATA_PAGE_ALGS_PATH = os.getenv('DATA_PAGE_ALGS_PATH')
 
 # HTML CLASS
 HTML_FIELD_CLASS_ALGORITHM = r'odd:bg-layer-1 even:bg-overlay-1 dark:odd:bg-dark-layer-bg dark:even:bg-dark-fill-4'
 HTML_FIELD_CLASS_DECS_ALG = r'_1l1MA'
 HTML_CLASS_SOLS = r'flex min-w-0 max-w-full items-center gap-2'
 HTML_CLASS_PAGE = r'flex flex-grow flex-nowrap items-center gap-2 overflow-hidden my-1'
+
+# css selector
+CSS_SELECTOR_ALGS_PAGE = r'div.odd\:bg-layer-1:nth-child(2) > div:nth-child(2) > div:nth-child(1) > div:nth-child(1) > div:nth-child(1) > div:nth-child(1) > a:nth-child(1)'

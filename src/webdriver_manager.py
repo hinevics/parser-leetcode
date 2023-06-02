@@ -1,4 +1,6 @@
 # Module for working with the webdriver
+from typing import Any
+
 from selenium.common.exceptions import TimeoutException
 from selenium import webdriver
 from selenium.webdriver.firefox.options import Options as FirefoxOptions
@@ -11,18 +13,7 @@ import logger
 from myconfig import EXECUTABLE_PATH
 
 
-def get_driver():
-    options = FirefoxOptions()
-    options.add_argument('--headless')
-    firefox_service = Service(EXECUTABLE_PATH)
-    driver = webdriver.Firefox(
-        service=firefox_service,
-        options=options
-    )
-    return driver
-
-
-def load_page(url, driver, css_selector):
+def get_driver_page_source(url, driver, css_selector) -> tuple[Any, Any]:
     max_attempts = 2
     current_attempt = 1
     while current_attempt <= max_attempts:
@@ -32,6 +23,17 @@ def load_page(url, driver, css_selector):
             wait.until(EC.visibility_of_element_located((By.CSS_SELECTOR, css_selector)))
             return driver.page_source, driver
         except TimeoutException as e:
-            logger.logger.lerror(f"Error: {e}")
+            logger.logger.error(e)
             current_attempt += 1
-    return None
+    return None, driver
+
+
+def get_driver() -> webdriver.Firefox:
+    options = FirefoxOptions()
+    options.add_argument('--headless')
+    firefox_service = Service(EXECUTABLE_PATH)
+    driver = webdriver.Firefox(
+        service=firefox_service,
+        options=options
+    )
+    return driver
