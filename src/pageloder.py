@@ -43,7 +43,7 @@ def check_path(path: pathlib.PosixPath) -> bool:
 
 def saver(page_algs: list[dict[str, Any]], path: pathlib.PosixPath, n_page: int):
     if path := check_path(path):
-        path = path.joinpath(f'{n_page}')
+        path = path.joinpath(f'{n_page}').with_suffix('.json')
         with open(file=path, mode='w', encoding='utf-8') as file:
             json.dump(page_algs, file)
 
