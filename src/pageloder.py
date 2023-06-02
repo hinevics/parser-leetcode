@@ -16,21 +16,6 @@ from myconfig import (
     HTML_CLASS_PAGE,
     PATH_DATA)
 
-logger = logging.getLogger('my_logger')
-logger.setLevel(logging.INFO)
-console_handler = logging.StreamHandler()
-formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-console_handler.setFormatter(formatter)
-logger.addHandler(console_handler)
-
-
-def color_log_green(text):
-    return f'\033[32m{text}\033[0m'
-
-
-def color_log_red(text):
-    return f'\033[31m{text}\033[0m'
-
 
 def load_page(url, driver, css_selector) -> tuple[Any, Any]:
     max_attempts = 2
