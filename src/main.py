@@ -11,7 +11,7 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from urllib.parse import urlencode, urlsplit, urlunsplit, urljoin
-import logging
+import logger
 from typing import Any
 
 from myconfig import (
@@ -27,13 +27,6 @@ CSS_SELECTOR_ALGS_PAGE = r'div.odd\:bg-layer-1:nth-child(2) > div:nth-child(2) >
 CSS_SELECTOR_ONE_ALG_PAGE = r'._1l1MA'
 CSS_SELECTOR_SOLUTIONS = r'div.py-4:nth-child(1) > div:nth-child(1) > div:nth-child(1)'
 CSS_SELECTOR_ONE_SOL = r'.break-words'
-
-logger = logging.getLogger('my_logger')
-logger.setLevel(logging.INFO)
-console_handler = logging.StreamHandler()
-formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-console_handler.setFormatter(formatter)
-logger.addHandler(console_handler)
 
 
 def color_log_green(text):
