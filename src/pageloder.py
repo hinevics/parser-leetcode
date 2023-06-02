@@ -69,7 +69,7 @@ def main():
         logger.logger.info('Search for divs.')
         algs_divs: list[Tag] = parser_manager.parser_divs(content_page, class_=HTML_FIELD_CLASS_ALGORITHM)
         algs = get_algs(algs_divs)
-        
+
         logger.logger.info(f'Saving a page {n_page}.')
         if algs:
             saver(algs, path=DATA_PAGE_ALGS_PATH, n_page=n_page)
