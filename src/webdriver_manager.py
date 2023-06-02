@@ -25,7 +25,7 @@ def get_driver_page_source(url, driver, css_selector) -> tuple[Any, Any]:
         except TimeoutException as e:
             logger.logger.error(e)
             current_attempt += 1
-    return None
+    return None, driver
 
 
 def get_driver() -> webdriver.Firefox:
