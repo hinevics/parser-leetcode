@@ -9,6 +9,7 @@ MAX_PAGE = 24
 MIN_PAGE = 1
 REG_NUMBER_ALG = r'\d+(?=\.)'
 EXECUTABLE_PATH = os.getenv("EXECUTABLE_PATH")
+LOG_PATH = os.getenv('LOG_PATH')
 PATH_DATA = os.getenv('PATH_DATA')
 
 # HTML CLASS
