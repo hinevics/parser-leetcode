@@ -28,7 +28,6 @@ def main():
             continue
 
         logger.logger.info(f"Load desc of {alg['name']}")
-        
 
 
 if __name__ == "__main__":

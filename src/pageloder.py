@@ -6,6 +6,8 @@ import re
 from urllib.parse import urljoin
 import pathlib
 
+from selenium import webdriver
+
 import webdriver_manager
 import url_manager
 import logger
@@ -14,20 +16,42 @@ import parser_manager
 from myconfig import (
     ALG_URL, MIN_PAGE, MAX_PAGE,
     CSS_SELECTOR_ALGS_PAGE, URL, HTML_FIELD_CLASS_ALGORITHM,
-    DATA_PAGE_ALGS_PATH
+    DATA_PAGE_ALGS_PATH, CSS_SELECTOR_ONE_ALG_PAGE, HTML_FIELD_CLASS_DECS_ALG
 )
 
 
 DATA_PAGE_ALGS_PATH = pathlib.Path(DATA_PAGE_ALGS_PATH)
 
 
-def get_algs(algs_divs: list[Tag]) -> list[dict[str, str]]:
+def get_desc(url: str, driver: webdriver.Firefox) -> str:
+    # returns a description
+    logger.logger.info(f'Start load description of {url}')
+
+    content_alg, driver = webdriver_manager.get_driver_page_source(
+            url=url,
+            driver=driver, css_selector=CSS_SELECTOR_ONE_ALG_PAGE)
+
+    if not content_alg:
+        logger.logger.error(f'Error when loading page {url}. Return empty desc')
+        return ''
+
+    description = parser_manager.parser_divs(
+        content=content_alg,
+        class_=HTML_FIELD_CLASS_DECS_ALG
+    )[0].text
+    logger.logger.info(f'Done loading description of {url}')
+    return description
+
+
+def get_algs(algs_divs: list[Tag], driver: webdriver.Firefox) -> list[dict[str, str]]:
+    # returns everything according to the algorithm
     ALGS = []
     for alg in algs_divs:
         ALG = dict()
         text = alg.find('a').text
         ALG['name'] = ' '.join(re.findall(pattern=r'[a-zA-Z]+', string=text))
         ALG['url'] = urljoin(URL, alg.find('a')['href'])
+        ALG['description'] = get_desc(url=ALG['url'], driver=driver)
         ALGS.append(ALG)
     return ALGS
 
@@ -68,7 +92,7 @@ def main():
 
         logger.logger.info('Search for divs.')
         algs_divs: list[Tag] = parser_manager.parser_divs(content_page, class_=HTML_FIELD_CLASS_ALGORITHM)
-        algs = get_algs(algs_divs)
+        algs = get_algs(algs_divs=algs_divs, driver=driver)
 
         logger.logger.info(f'Saving a page {n_page}.')
         if algs:
