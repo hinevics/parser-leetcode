@@ -10,9 +10,10 @@ The LeetCode Task Collector project allows you to:
 - Collect links to algorithmic tasks from leetcode.com
 - Obtain algorithm descriptions for each task
 - Collect all solution options for the tasks, including metadata
-- (TODO) Implement workflow management and DAG execution using Apache Airflow
-- (TODO) Write comprehensive tests to ensure the functionality and reliability of the application
-- (TODO) Gather additional information about solution authors, task numbers, ratings, and more
+## TODO
+- [ ] Implement workflow management and DAG execution using Apache Airflow
+- [ ] Write comprehensive tests to ensure the functionality and reliability of the application
+- [ ] Gather additional information about solution authors, task numbers, ratings, and more
 
 ## Contributing
 
