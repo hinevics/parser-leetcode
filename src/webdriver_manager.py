@@ -13,7 +13,7 @@ import logger
 from myconfig import EXECUTABLE_PATH
 
 
-def get_driver_page_source(url, driver, css_selector) -> tuple[Any, Any]:
+def get_driver_page_source(url: str, driver: webdriver.Firefox, css_selector: str) -> tuple[Any, Any]:
     max_attempts = 2
     current_attempt = 1
     while current_attempt <= max_attempts:
