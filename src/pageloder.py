@@ -62,7 +62,7 @@ def main():
 
         if not content_page:
             logger.logger.error(
-                f'PAGE={n_page}. Error when loading page {n_page}. Continue task wiht new page.'
+                f'Error when loading page {n_page}. Continue task wiht new page.'
             )
             continue
 
