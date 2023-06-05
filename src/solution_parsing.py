@@ -23,10 +23,10 @@ headers = {
     'Content-Type': 'application/json',
 }
 
-query_totalNum = """query tabsStatus($titleSlug: String!) {
+query_tabsStatus = """query tabsStatus($titleSlug: String!) {
         questionTopicsList(questionSlug: $titleSlug) {totalNum}
         questionDiscussionTopic(questionSlug: $titleSlug) {topLevelCommentCount}}"""
-
+query_communitySolutions = """query communitySolutions($questionSlug: String!, $skip: Int!, $first: Int!, $query: String, $orderBy: TopicSortingOption, $languageTags: [String!], $topicTags: [String!]) { questionSolutions(   filters: {questionSlug: $questionSlug, skip: $skip, first: $first, query: $query, orderBy: $orderBy, languageTags: $languageTags, topicTags: $topicTags} ) {   hasDirectResults   totalNum   solutions { id title commentCount topLevelCommentCount viewCount pinned isFavorite solutionTags {   name   slug } post {   id   status   voteCount   creationDate   isHidden   author {     username     isActive     nameColor     activeBadge {       displayName       icon     }     profile {       userAvatar       reputation     }   } } searchMeta {   content   contentType   commentAuthor { username } replyAuthor { username } highlights}}}}"""
 DATA_PAGE_ALGS_PATH = pathlib.Path(DATA_PAGE_ALGS_PATH)
 
 
@@ -35,20 +35,45 @@ async def get_graphql_data(session: aiohttp.ClientSession, url: str, data: dict[
         return await respons.json()
 
 
+async def get_id_solutions(name_alg: str, session: aiohttp.ClientSession,
+                           url: str, data: dict[str, Any], totalNum: int) -> list[int]:
+    post_data_communitySolutions = {
+                'query': query_communitySolutions,
+                'variables': {
+                    "query": "",
+                    "languageTags": [],
+                    "topicTags": [],
+                    "questionSlug": name_alg, "skip": 0,
+                    "first": 0, "orderBy": "hot"},
+                'operationName': "communitySolutions"
+            }
+    id_sols = []
+    skip = 0
+    first = 100
+    while skip < totalNum:
+        post_data_communitySolutions['variables']['skip'] = skip
+        post_data_communitySolutions['variables']['first'] = first
+        communitySolutions_response = await get_graphql_data(
+                    session=session, url=url,
+                    data=post_data_communitySolutions)
+        communitySolutions_response['data']['questionSolutions']['solutions']
+        skip += first
+    delta = totalNum - skip
+
+
 async def main():
     for alg in get_alg_url(directory_path=DATA_PAGE_ALGS_PATH):
         path = urlparse(alg['url']).path
         name_alg = path.strip('/').split('/')[-1]
         url = 'https://leetcode.com/graphql/'
         post_data_totalNum = {
-            'query': query_totalNum,
+            'query': query_tabsStatus,
             'variables': {"titleSlug": name_alg},
             'operationName': "tabsStatus"
         }
         async with aiohttp.ClientSession() as session:
-            response = await get_graphql_data(session=session, url=url, data=post_data_totalNum)
-            totalNum = response['data']['questionTopicsList']['totalNum']
-
+            totalNum_response = await get_graphql_data(session=session, url=url, data=post_data_totalNum)
+            totalNum = totalNum_response['data']['questionTopicsList']['totalNum']
 
 
 if __name__ == "__main__":
