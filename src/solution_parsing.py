@@ -36,7 +36,7 @@ async def get_graphql_data(session: aiohttp.ClientSession, url: str, data: dict[
 
 
 async def get_id_solutions(name_alg: str, session: aiohttp.ClientSession,
-                           url: str, data: dict[str, Any], totalNum: int) -> list[int]:
+                           url: str, totalNum: int) -> list[int]:
     post_data_communitySolutions = {
                 'query': query_communitySolutions,
                 'variables': {
@@ -56,9 +56,22 @@ async def get_id_solutions(name_alg: str, session: aiohttp.ClientSession,
         communitySolutions_response = await get_graphql_data(
                     session=session, url=url,
                     data=post_data_communitySolutions)
-        communitySolutions_response['data']['questionSolutions']['solutions']
+        id_sols = [
+            *id_sols,
+            *list(map(lambda x: x['id'], communitySolutions_response['data']['questionSolutions']['solutions']))
+        ]
         skip += first
-    delta = totalNum - skip
+    skip = totalNum - skip - totalNum
+    post_data_communitySolutions['variables']['skip'] = skip
+    post_data_communitySolutions['variables']['first'] = first
+    communitySolutions_response = await get_graphql_data(
+                    session=session, url=url,
+                    data=post_data_communitySolutions)
+    id_sols = [
+            *id_sols,
+            *list(map(lambda x: x['id'], communitySolutions_response['data']['questionSolutions']['solutions']))
+        ]
+    return id_sols
 
 
 async def main():
@@ -74,6 +87,9 @@ async def main():
         async with aiohttp.ClientSession() as session:
             totalNum_response = await get_graphql_data(session=session, url=url, data=post_data_totalNum)
             totalNum = totalNum_response['data']['questionTopicsList']['totalNum']
+            is_sols = get_id_solutions(name_alg=name_alg, session=session, url=url, totalNum=totalNum)
+
+        break
 
 
 if __name__ == "__main__":
