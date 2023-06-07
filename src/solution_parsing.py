@@ -37,6 +37,7 @@ async def get_graphql_data(session: aiohttp.ClientSession, url: str, data: dict[
 
 async def get_id_solutions(name_alg: str, session: aiohttp.ClientSession,
                            url: str, totalNum: int) -> list[int]:
+    logger.logger.info('Load ids sols for alg')
     post_data_communitySolutions = {
                 'query': query_communitySolutions,
                 'variables': {
@@ -51,6 +52,7 @@ async def get_id_solutions(name_alg: str, session: aiohttp.ClientSession,
     skip = 0
     first = 100
     while skip < totalNum:
+        logger.logger.debug(f'skip={skip}')
         post_data_communitySolutions['variables']['skip'] = skip
         post_data_communitySolutions['variables']['first'] = first
         communitySolutions_response = await get_graphql_data(
@@ -61,7 +63,9 @@ async def get_id_solutions(name_alg: str, session: aiohttp.ClientSession,
             *list(map(lambda x: x['id'], communitySolutions_response['data']['questionSolutions']['solutions']))
         ]
         skip += first
-    skip = totalNum - skip - totalNum
+    logger.logger.info(f'Start final loading')
+    logger.logger.debug(f'Final LOAD skip={skip}')
+    skip = totalNum - skip + totalNum
     post_data_communitySolutions['variables']['skip'] = skip
     post_data_communitySolutions['variables']['first'] = first
     communitySolutions_response = await get_graphql_data(
@@ -87,7 +91,7 @@ async def main():
         async with aiohttp.ClientSession() as session:
             totalNum_response = await get_graphql_data(session=session, url=url, data=post_data_totalNum)
             totalNum = totalNum_response['data']['questionTopicsList']['totalNum']
-            is_sols = get_id_solutions(name_alg=name_alg, session=session, url=url, totalNum=totalNum)
+            id_sols = await get_id_solutions(name_alg=name_alg, session=session, url=url, totalNum=totalNum)
 
         break
 
