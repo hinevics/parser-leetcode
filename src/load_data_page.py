@@ -1,4 +1,3 @@
-import pandas as pd
 from bs4 import BeautifulSoup
 import re
 from selenium import webdriver
@@ -85,6 +84,7 @@ def loader_page(chunks):
             # alg_name
             text = div.find('a').text
             find = re.findall(pattern=REG_NAME_ALG, string=text)
+            print(find)
             alg_name = ' '.join(re.findall(pattern=REG_NAME_ALG, string=text))
             alg_data['alg_name'] = alg_name
 
@@ -146,7 +146,7 @@ def loader_page(chunks):
             else:
                 print('Error #1 ')
                 break
-            logger.info(f'\033[32mEND\033[0m\tparsing solutions\033[0m')
+            logger.info('\033[32mEND\033[0m\tparsing solutions\033[0m')
             logger.info(f'\033[32mEND\033[0m\tparsing alg {alg_number}.{alg_name}')
 
             res_data.append(alg_data)
@@ -174,6 +174,8 @@ def main():
         # Ждем выполнения всех задач
         for future in concurrent.futures.as_completed(futures):
             result = future.result()
+        return result
+
 
 if __name__ == "__main__":
     main()
