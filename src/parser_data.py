@@ -31,8 +31,8 @@ def main():
     }
     response = requests.post(URL_API, headers=headers, json=query)
     if response.status_code == 200:
-        # result = response.json()
-        print(response.text)
+        result = response.json()
+        print(result)
         # Обработка данных из result
     else:
         print('Ошибка при выполнении запроса')
