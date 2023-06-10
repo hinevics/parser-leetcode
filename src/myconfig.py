@@ -20,7 +20,10 @@ HTML_CLASS_SOLS = r'flex min-w-0 max-w-full items-center gap-2'
 HTML_CLASS_PAGE = r'flex flex-grow flex-nowrap items-center gap-2 overflow-hidden my-1'
 
 # css selector
-CSS_SELECTOR_ALGS_PAGE = r'div.odd\:bg-layer-1:nth-child(2) > div:nth-child(2) > div:nth-child(1) > div:nth-child(1) > div:nth-child(1) > div:nth-child(1) > a:nth-child(1)'
+CSS_SELECTOR_ALGS_PAGE = (
+    r"div.odd\:bg-layer-1:nth-child(2) > div:nth-child(2) >"
+    r"div:nth-child(1) > div:nth-child(1) > div:nth-child(1) > div:nth-child(1) > a:nth-child(1)"
+)
 CSS_SELECTOR_ONE_ALG_PAGE = r'._1l1MA'
 CSS_SELECTOR_SOLUTIONS = r'div.py-4:nth-child(1) > div:nth-child(1) > div:nth-child(1)'
 CSS_SELECTOR_ONE_SOL = r'.break-words'
