@@ -5,6 +5,7 @@ load_dotenv()
 
 ALG_URL = r'https://leetcode.com/problemset/algorithms'
 URL = r'https://leetcode.com'
+URL_API = r'https://leetcode.com/graphql/'
 MAX_PAGE = 24
 MIN_PAGE = 1
 REG_NUMBER_ALG = r'\d+(?=\.)'
