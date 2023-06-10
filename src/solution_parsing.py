@@ -1,17 +1,14 @@
 # Module for collecting solutions of the algorithm
 import pathlib
-from urllib.parse import urlparse, urljoin
+from urllib.parse import urlparse
 import aiohttp
 import asyncio
 from typing import Any
 
 from get_algs import get_alg_url
-import parser_manager
-import webdriver_manager
 import logger
 from myconfig import (
     DATA_PAGE_ALGS_PATH,
-    CSS_SELECTOR_ONE_ALG_PAGE
 )
 
 headers = {
@@ -26,7 +23,17 @@ headers = {
 query_tabsStatus = """query tabsStatus($titleSlug: String!) {
         questionTopicsList(questionSlug: $titleSlug) {totalNum}
         questionDiscussionTopic(questionSlug: $titleSlug) {topLevelCommentCount}}"""
-query_communitySolutions = """query communitySolutions($questionSlug: String!, $skip: Int!, $first: Int!, $query: String, $orderBy: TopicSortingOption, $languageTags: [String!], $topicTags: [String!]) { questionSolutions(   filters: {questionSlug: $questionSlug, skip: $skip, first: $first, query: $query, orderBy: $orderBy, languageTags: $languageTags, topicTags: $topicTags} ) {   hasDirectResults   totalNum   solutions { id title commentCount topLevelCommentCount viewCount pinned isFavorite solutionTags {   name   slug } post {   id   status   voteCount   creationDate   isHidden   author {     username     isActive     nameColor     activeBadge {       displayName       icon     }     profile {       userAvatar       reputation     }   } } searchMeta {   content   contentType   commentAuthor { username } replyAuthor { username } highlights}}}}"""
+query_communitySolutions = (
+    "query communitySolutions($questionSlug: String!, $skip: Int!, $first: Int!, $query: String, $orderBy:"
+    "TopicSortingOption, $languageTags: [String!], $topicTags: [String!])"
+    "{ questionSolutions(   filters: {questionSlug: $questionSlug, skip: $skip, first: $first,"
+    "query: $query, orderBy: $orderBy, languageTags: $languageTags, topicTags: $topicTags} )"
+    "{   hasDirectResults   totalNum   solutions"
+    "{ id title commentCount topLevelCommentCount viewCount pinned isFavorite solutionTags {   name   slug }"
+    "post {   id   status   voteCount   creationDate   isHidden   author {     username     isActive     nameColor "
+    "activeBadge {       displayName       icon     }     profile {       userAvatar       reputation     }   } }"
+    "searchMeta {   content   contentType   commentAuthor { username } replyAuthor { username } highlights}}}}"
+)
 DATA_PAGE_ALGS_PATH = pathlib.Path(DATA_PAGE_ALGS_PATH)
 
 
@@ -63,7 +70,7 @@ async def get_id_solutions(name_alg: str, session: aiohttp.ClientSession,
             *list(map(lambda x: x['id'], communitySolutions_response['data']['questionSolutions']['solutions']))
         ]
         skip += first
-    logger.logger.info(f'Start final loading')
+    logger.logger.info('Start final loading')
     logger.logger.debug(f'Final LOAD skip={skip}')
     skip = totalNum - skip + totalNum
     post_data_communitySolutions['variables']['skip'] = skip
@@ -91,7 +98,7 @@ async def main():
         async with aiohttp.ClientSession() as session:
             totalNum_response = await get_graphql_data(session=session, url=url, data=post_data_totalNum)
             totalNum = totalNum_response['data']['questionTopicsList']['totalNum']
-            id_sols = await get_id_solutions(name_alg=name_alg, session=session, url=url, totalNum=totalNum)
+            await get_id_solutions(name_alg=name_alg, session=session, url=url, totalNum=totalNum)
 
         break
 
