@@ -166,7 +166,6 @@ def main():
     thread = threading.Thread(target=loader_page)
     thread.start()
 
-
     # Создаем пул потоков из нескольких воркеров
     with concurrent.futures.ThreadPoolExecutor() as executor:
         # Вызываем функцию load_page для каждого элемента списка параллельно
