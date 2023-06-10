@@ -28,3 +28,13 @@ problemsetQuestionListQuery = """
         }
     }
 """
+query_total_problemset_questions = """
+    query problemsetQuestionList($categorySlug: String, $filters: QuestionListFilterInput) {
+        problemsetQuestionList: questionList(
+            categorySlug: $categorySlug
+            filters: $filters
+        ) {
+            total: totalNum
+        }
+    }
+"""
