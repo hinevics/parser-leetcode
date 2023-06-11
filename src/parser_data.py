@@ -1,6 +1,4 @@
-# import logger
 # import glob
-import json
 import asyncio
 import aiohttp
 
@@ -8,6 +6,7 @@ from typing import Any
 
 import graphql_api_queries
 from myconfig import URL_API
+import logger
 
 
 headers = {
@@ -25,7 +24,8 @@ async def get_graphql_data(session: aiohttp.ClientSession, url: str, data: dict[
         return await respons.json()
 
 
-async def get_name_problems(session: aiohttp.ClientSession, url: str) -> list[str]:
+async def get_total_problems(session: aiohttp.ClientSession, url: str) -> int:
+    logger.logger.info('Start get_total_problems')
     variables = {
         "categorySlug": "",
         "filters": {}
@@ -42,7 +42,51 @@ async def get_name_problems(session: aiohttp.ClientSession, url: str) -> list[st
         data=query_total_number_problems
     )
     total_problems = data['data']['problemsetQuestionList']['total']
-    print(total_problems)
+    logger.logger.info('Completed get_total_problems')
+    return total_problems
+
+
+async def get_alg_problems(session: aiohttp.ClientSession, url: str, total_num: int) -> list[Any]:
+    logger.logger.info('Start get_alg_problems')
+    skip = 0
+    first = 100
+    variables = {
+        "categorySlug": "algorithms",
+        "skip": skip,
+        "limit": first,
+        "filters": {}
+    }
+    query_problemset_question_list = {
+        'query': graphql_api_queries.query_problemset_question_list,
+        'variables': variables,
+        'operationName': 'problemsetQuestionList'
+    }
+    data = []
+    while skip < total_num:
+        logger.logger.debug(f'Load {skip}, {first}')
+        query_problemset_question_list['variables']['skip'] = skip
+        query_problemset_question_list['variables']['first'] = first
+        data = await get_graphql_data(
+                    session=session, url=url,
+                    data=query_problemset_question_list)
+        data = [
+            *data,
+            *list(map(lambda x: x['id'], data['data']['problemsetQuestionList']['questions']))
+        ]
+        skip += first
+    skip = total_num - skip + total_num
+    logger.logger.debug(f'Load last {total_num -skip}')
+    query_problemset_question_list['variables']['skip'] = skip
+    query_problemset_question_list['variables']['first'] = first
+    data = await get_graphql_data(
+                    session=session, url=url,
+                    data=query_problemset_question_list)
+    data = [
+            *data,
+            *list(map(lambda x: x['id'], data['data']['problemsetQuestionList']['questions']))
+        ]
+    logger.logger.info('Completed get_alg_problems')
+    return data
 
 
 async def main():
@@ -60,7 +104,11 @@ async def main():
     # }
 
     async with aiohttp.ClientSession() as session:
-        await get_name_problems(session=session, url=URL_API)
+        total_num = await get_total_problems(session=session, url=URL_API)
+        algs_data = await get_alg_problems(session=session, url=URL_API, total_num=total_num)
+        print(total_num)
+
+        print(len(algs_data))
 
 
 if __name__ == "__main__":
