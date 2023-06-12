@@ -9,11 +9,10 @@ query_total_problemset_questions = """
     }
 """
 query_problemset_question_list = """query problemsetQuestionList(
-        $categorySlug: String, $limit: Int, $skip: Int, $filters: QuestionListFilterInput) {
+        $categorySlug: String, $limit: Int, $filters: QuestionListFilterInput) {
     problemsetQuestionList: questionList(
       categorySlug: $categorySlug
       limit: $limit
-      skip: $skip
       filters: $filters
     ) {
       total: totalNum
