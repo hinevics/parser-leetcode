@@ -24,4 +24,5 @@ query_problemset_question_list = """query problemsetQuestionList(
         titleSlug
       }
     }
+}
 """
