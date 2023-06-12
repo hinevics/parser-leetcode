@@ -27,7 +27,7 @@ async def get_graphql_data(session: aiohttp.ClientSession, url: str, data: dict[
 async def get_total_problems(session: aiohttp.ClientSession, url: str) -> int:
     logger.logger.info('Start get_total_problems')
     variables = {
-        "categorySlug": "",
+        "categorySlug": "algorithms",
         "filters": {}
     }
     query_total_number_problems = {
@@ -49,11 +49,11 @@ async def get_total_problems(session: aiohttp.ClientSession, url: str) -> int:
 async def get_alg_problems(session: aiohttp.ClientSession, url: str, total_num: int) -> list[Any]:
     logger.logger.info('Start get_alg_problems')
     skip = 0
-    first = 100
+    limit = 50
     variables = {
         "categorySlug": "algorithms",
         "skip": skip,
-        "limit": first,
+        "limit": limit,
         "filters": {}
     }
     query_problemset_question_list = {
@@ -63,27 +63,32 @@ async def get_alg_problems(session: aiohttp.ClientSession, url: str, total_num: 
     }
     data = []
     while skip < total_num:
-        logger.logger.debug(f'Load {skip}, {first}')
+        logger.logger.debug(f'Load {skip}, {limit}')
         query_problemset_question_list['variables']['skip'] = skip
-        query_problemset_question_list['variables']['first'] = first
-        data = await get_graphql_data(
+        questions = await get_graphql_data(
                     session=session, url=url,
                     data=query_problemset_question_list)
         data = [
             *data,
-            *list(map(lambda x: x['id'], data['data']['problemsetQuestionList']['questions']))
+            *questions['data']['problemsetQuestionList']['questions']
         ]
-        skip += first
-    skip = total_num - skip + total_num
+        skip += limit
+    limit = skip - total_num
+    skip = total_num - limit
+    print(f'{first=}')
+    print(f'{skip=}')
+
     logger.logger.debug(f'Load last {total_num -skip}')
     query_problemset_question_list['variables']['skip'] = skip
-    query_problemset_question_list['variables']['first'] = first
-    data = await get_graphql_data(
+    query_problemset_question_list['variables']['limit'] = limit
+    print(query_problemset_question_list)
+    questions = await get_graphql_data(
                     session=session, url=url,
                     data=query_problemset_question_list)
+    print(f"{len(questions['data']['problemsetQuestionList']['questions'])=}")
     data = [
             *data,
-            *list(map(lambda x: x['id'], data['data']['problemsetQuestionList']['questions']))
+            *questions['data']['problemsetQuestionList']['questions']
         ]
     logger.logger.info('Completed get_alg_problems')
     return data
