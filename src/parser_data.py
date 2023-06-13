@@ -138,7 +138,7 @@ async def get_algorithm_solutions(
         )
         data = [
             *data,
-            *list(map(parser_sol, returned_data))
+            *list(map(parser_sol, returned_data['data']['questionSolutions']['solutions']))
         ]
         break
         # skip += first
@@ -167,21 +167,27 @@ async def main():
     async with aiohttp.ClientSession() as session:
         total_num = await get_total_problems(session=session, url=URL_API, categorySlug="algorithms")
         algs_data = await get_alg_problems(session=session, url=URL_API, total_num=total_num, categorySlug="algorithms")
+        if not algs_data:
+            raise ValueError('Пустые данные')
         for alg in algs_data:
             logger.logger.info('START -- get_total_number_sol --')
             total_num_sols = await get_total_number_sol(
-                session=session, url=URL_API, alg_name=alg['title'])
+                session=session, url=URL_API, alg_name=alg['titleSlug'])
+            if not total_num_sols:
+                raise ValueError('Пустые данные')
             logger.logger.info('COMPLETED -- get_total_number_sol -- ')
 
             logger.logger.info('START -- get_algorithm_solutions --')
             sols_alg = await get_algorithm_solutions(
-                session=session, url=URL_API, total_num=total_num_sols, alg_name=alg['title'])
+                session=session, url=URL_API, total_num=total_num_sols, alg_name=alg['titleSlug'])
+            if not sols_alg:
+                raise ValueError('Пустые данные')
             logger.logger.info('COMPLETED -- get_algorithm_solutions -- ')
 
             alg['sols'] = sols_alg
 
             logger.logger.info('START -- saver_data --')
-            saver_data(data=alg, path=path_problems, name_obj=alg['title'])
+            saver_data(data=alg, path=path_problems, name_obj=alg['titleSlug'])
             logger.logger.info('COMPLETED -- saver_data -- ')
             break
 
