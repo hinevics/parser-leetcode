@@ -24,6 +24,7 @@ PATH_DATA = pathlib.Path(PATH_DATA)
 
 
 def saver_data(path: pathlib.PosixPath, name_obj: str, data: dict[str, Any]):
+    logger.logger.debug(f'saver_data:{name_obj}')
     path = path.joinpath(name_obj).with_suffix('.json')
     with open(path, mode='w', encoding='utf-8') as file:
         json.dump(data, file)
@@ -35,7 +36,6 @@ async def get_graphql_data(session: aiohttp.ClientSession, url: str, data: dict[
 
 
 async def get_total_problems(session: aiohttp.ClientSession, url: str, categorySlug: str) -> int:
-    logger.logger.info('Start get_total_problems')
     variables = {
         "categorySlug": categorySlug,
         "filters": {}
@@ -52,13 +52,11 @@ async def get_total_problems(session: aiohttp.ClientSession, url: str, categoryS
         data=query_total_number_problems
     )
     total_problems = data['data']['problemsetQuestionList']['total']
-    logger.logger.info('Completed get_total_problems')
+    logger.logger.debug(f'get_total_problems::total_problems={total_problems}')
     return total_problems
 
 
 async def get_alg_problems(session: aiohttp.ClientSession, url: str, total_num: int, categorySlug: str) -> list[Any]:
-    logger.logger.info('Start get_alg_problems')
-
     variables = {
         "categorySlug": categorySlug,
         "limit": total_num,
@@ -72,13 +70,13 @@ async def get_alg_problems(session: aiohttp.ClientSession, url: str, total_num: 
     data = await get_graphql_data(
                     session=session, url=url,
                     data=query_problemset_question_list)
-    logger.logger.info('Completed get_alg_problems')
-
-    return data['data']['problemsetQuestionList']['questions']
+    questions = data['data']['problemsetQuestionList']['questions']
+    logger.logger.debug(f'get_alg_problems::{len(questions)=}')
+    return questions
 
 
 async def get_total_number_sol(session: aiohttp.ClientSession, url: str, alg_name: str) -> int:
-    logger.logger.info('Start get_total_number_sol')
+    logger.logger.debug(f'get_total_number_sol::{alg_name}')
     variables = {
         "query": "",
         "languageTags": [],
@@ -97,8 +95,9 @@ async def get_total_number_sol(session: aiohttp.ClientSession, url: str, alg_nam
         url=url,
         data=query_total_number_sols_for_problem
     )
-    logger.logger.info('Completed get_total_number_sol')
-    return data['data']['questionSolutions']['totalNum']
+    totalNum = data['data']['questionSolutions']['totalNum']
+    logger.logger.debug(f'get_total_number_sol::{alg_name=}::{totalNum=}')
+    return totalNum
 
 
 def parser_sol(data: dict[str, Any]) -> dict[str, Any]:
@@ -130,6 +129,7 @@ async def get_algorithm_solutions(
     }
     data = []
     while skip < total_num:
+        logger.logger.debug(f'get_algorithm_solutions::{skip=}')
         query_sols_for_problem['variables']['skip'] = skip
         returned_data = await get_graphql_data(
             session=session,
@@ -140,18 +140,21 @@ async def get_algorithm_solutions(
             *data,
             *list(map(parser_sol, returned_data))
         ]
-        skip += first
-    skip = 2 * total_num - skip 
-    query_sols_for_problem['variables']['skip'] = skip
-    returned_data = await get_graphql_data(
-            session=session,
-            url=url,
-            data=query_sols_for_problem
-        )
-    data = [
-        *data,
-        *list(map(parser_sol, returned_data))
-    ]
+        break
+        # skip += first
+
+    # skip = 2 * total_num - skip
+    # logger.logger.debug(f'get_algorithm_solutions::{skip=}')
+    # query_sols_for_problem['variables']['skip'] = skip
+    # returned_data = await get_graphql_data(
+    #         session=session,
+    #         url=url,
+    #         data=query_sols_for_problem
+    #     )
+    # data = [
+    #     *data,
+    #     *list(map(parser_sol, returned_data))
+    # ]
     return data
 
 
@@ -165,13 +168,23 @@ async def main():
         total_num = await get_total_problems(session=session, url=URL_API, categorySlug="algorithms")
         algs_data = await get_alg_problems(session=session, url=URL_API, total_num=total_num, categorySlug="algorithms")
         for alg in algs_data:
+            logger.logger.info('START -- get_total_number_sol --')
             total_num_sols = await get_total_number_sol(
                 session=session, url=URL_API, alg_name=alg['title'])
+            logger.logger.info('COMPLETED -- get_total_number_sol -- ')
+
+            logger.logger.info('START -- get_algorithm_solutions --')
             sols_alg = await get_algorithm_solutions(
                 session=session, url=URL_API, total_num=total_num_sols, alg_name=alg['title'])
+            logger.logger.info('COMPLETED -- get_algorithm_solutions -- ')
+
             alg['sols'] = sols_alg
+
+            logger.logger.info('START -- saver_data --')
             saver_data(data=alg, path=path_problems, name_obj=alg['title'])
+            logger.logger.info('COMPLETED -- saver_data -- ')
             break
+
 
 if __name__ == "__main__":
     asyncio.run(main())
