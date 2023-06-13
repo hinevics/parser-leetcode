@@ -13,6 +13,7 @@ EXECUTABLE_PATH = os.getenv("EXECUTABLE_PATH")
 LOG_PATH = os.getenv('LOG_PATH')
 DATA_ONE_ALG_PATH = os.getenv('DATA_ONE_ALG_PATH')
 DATA_PAGE_ALGS_PATH = os.getenv('DATA_PAGE_ALGS_PATH')
+PATH_DATA = os.getenv('PATH_DATA')
 
 # HTML CLASS
 HTML_FIELD_CLASS_ALGORITHM = r'odd:bg-layer-1 even:bg-overlay-1 dark:odd:bg-dark-layer-bg dark:even:bg-dark-fill-4'
