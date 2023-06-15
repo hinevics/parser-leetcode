@@ -19,6 +19,7 @@ def laod_file(directory_path: pathlib.PosixPath) -> dict[str, Any]:
         raise FileNotFoundError('Такой директории нет!')
     file_path_list = glob.glob(str(directory_path / '*'))
     for fp in file_path_list:
+        logger.logger.debug(f"laod_file::{fp}")
         with open(fp, mode='r', encoding='utf-8') as file:
             data = json.load(file)
             yield data
@@ -36,6 +37,7 @@ def parser_json(data: dict[str, Any]) -> pd.DataFrame:
         'post_content': [],
     }
     for sol in data['sols']:
+        logger.logger.debug(f"parser_json::{sol['id']}")
         data_for_pandas['id_sol'].append(sol['id'])
         data_for_pandas['title_sol'].append(sol['title'])
         data_for_pandas['commentCount'].append(sol['commentCount'])
