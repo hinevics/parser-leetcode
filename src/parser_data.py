@@ -140,21 +140,20 @@ async def get_algorithm_solutions(
             *data,
             *list(map(parser_sol, returned_data['data']['questionSolutions']['solutions']))
         ]
-        break
-        # skip += first
+        skip += first
 
-    # skip = 2 * total_num - skip
-    # logger.logger.debug(f'get_algorithm_solutions::{skip=}')
-    # query_sols_for_problem['variables']['skip'] = skip
-    # returned_data = await get_graphql_data(
-    #         session=session,
-    #         url=url,
-    #         data=query_sols_for_problem
-    #     )
-    # data = [
-    #     *data,
-    #     *list(map(parser_sol, returned_data))
-    # ]
+    skip = 2 * total_num - skip
+    logger.logger.debug(f'get_algorithm_solutions::{skip=}')
+    query_sols_for_problem['variables']['skip'] = skip
+    returned_data = await get_graphql_data(
+            session=session,
+            url=url,
+            data=query_sols_for_problem
+        )
+    data = [
+        *data,
+        *list(map(parser_sol, returned_data))
+    ]
     return data
 
 
@@ -189,7 +188,6 @@ async def main():
             logger.logger.info('START -- saver_data --')
             saver_data(data=alg, path=path_problems, name_obj=alg['titleSlug'])
             logger.logger.info('COMPLETED -- saver_data -- ')
-            break
 
 
 if __name__ == "__main__":
