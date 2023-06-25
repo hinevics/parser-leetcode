@@ -30,12 +30,15 @@ def saver_data(path: pathlib.PosixPath, name_obj: str, data: dict[str, Any]):
         json.dump(data, file)
 
 
-async def get_graphql_data(session: aiohttp.ClientSession, url: str, data: dict[str, Any]) -> dict[str, Any]:
+async def get_graphql_data(session: aiohttp.ClientSession,
+                           url: str, data: dict[str, Any]) -> dict[str, Any]:
     async with session.post(url, json=data) as respons:
         return await respons.json()
 
 
-async def get_total_problems(session: aiohttp.ClientSession, url: str, categorySlug: str) -> int:
+async def get_total_problems(session: aiohttp.ClientSession,
+                             url: str, categorySlug: str) -> int:
+
     variables = {
         "categorySlug": categorySlug,
         "filters": {}
@@ -46,17 +49,30 @@ async def get_total_problems(session: aiohttp.ClientSession, url: str, categoryS
         "operationName": "problemsetQuestionList"
 
     }
-    data = await get_graphql_data(
-        session=session,
-        url=url,
-        data=query_total_number_problems
-    )
+
+    try:
+        data = await get_graphql_data(
+            session=session,
+            url=url,
+            data=query_total_number_problems
+        )
+    except Exception as e:
+        error_message = (
+            'We have a problem in the get_total_problems.\n' +
+            'The problem occurred with the following attributes:\n' +
+            f'{url=}, {query_total_number_problems=}' +
+            f'Exception:\n{e}'
+        )
+        logger.error_logger.error(error_message)
+
     total_problems = data['data']['problemsetQuestionList']['total']
     logger.logger.debug(f'get_total_problems::total_problems={total_problems}')
+
     return total_problems
 
 
-async def get_alg_problems(session: aiohttp.ClientSession, url: str, total_num: int, categorySlug: str) -> list[Any]:
+async def get_alg_problems(session: aiohttp.ClientSession,
+                           url: str, total_num: int, categorySlug: str) -> list[Any]:
     variables = {
         "categorySlug": categorySlug,
         "limit": total_num,
@@ -75,7 +91,8 @@ async def get_alg_problems(session: aiohttp.ClientSession, url: str, total_num: 
     return questions
 
 
-async def get_total_number_sol(session: aiohttp.ClientSession, url: str, alg_name: str) -> int:
+async def get_total_number_sol(session: aiohttp.ClientSession,
+                               url: str, alg_name: str) -> int:
     logger.logger.debug(f'get_total_number_sol::{alg_name}')
     variables = {
         "query": "",
@@ -164,8 +181,12 @@ async def main():
         raise FileExistsError('Папок для хранения нет')
 
     async with aiohttp.ClientSession() as session:
-        total_num = await get_total_problems(session=session, url=URL_API, categorySlug="algorithms")
-        algs_data = await get_alg_problems(session=session, url=URL_API, total_num=total_num, categorySlug="algorithms")
+        total_num = await get_total_problems(
+            session=session,
+            url=URL_API, categorySlug="algorithms")
+        algs_data = await get_alg_problems(
+            session=session, url=URL_API, total_num=total_num,
+            categorySlug="algorithms")
         if not algs_data:
             raise ValueError('Пустые данные')
         for alg in algs_data:
@@ -179,7 +200,11 @@ async def main():
 
                 logger.logger.info('START -- get_algorithm_solutions --')
                 sols_alg = await get_algorithm_solutions(
-                    session=session, url=URL_API, total_num=total_num_sols, alg_name=alg['titleSlug'])
+                    session=session, 
+                    url=URL_API,
+                    total_num=total_num_sols,
+                    alg_name=alg['titleSlug']
+                )
                 if not sols_alg:
                     raise ValueError('Пустые данные')
                 logger.logger.info('COMPLETED -- get_algorithm_solutions -- ')
@@ -189,7 +214,16 @@ async def main():
                 logger.logger.info('START -- saver_data --')
                 saver_data(data=alg, path=path_problems, name_obj=alg['titleSlug'])
                 logger.logger.info('COMPLETED -- saver_data -- ')
-    
+            except Exception as e:
+                error_message = (
+                    'We have a problem in the get_total_problems.\n' +
+                    'The problem occurred with the following attributes:\n' +
+                    f"{alg['titleSlug']=}" +
+                    f'Exception:\n{e}'
+                )
+                logger.error_logger.error(error_message)
+                continue
+
 
 if __name__ == "__main__":
     asyncio.run(main())
