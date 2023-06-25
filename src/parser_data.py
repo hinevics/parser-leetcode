@@ -169,26 +169,27 @@ async def main():
         if not algs_data:
             raise ValueError('Пустые данные')
         for alg in algs_data:
-            logger.logger.info('START -- get_total_number_sol --')
-            total_num_sols = await get_total_number_sol(
-                session=session, url=URL_API, alg_name=alg['titleSlug'])
-            if not total_num_sols:
-                raise ValueError('Пустые данные')
-            logger.logger.info('COMPLETED -- get_total_number_sol -- ')
+            try:
+                logger.logger.info('START -- get_total_number_sol --')
+                total_num_sols = await get_total_number_sol(
+                    session=session, url=URL_API, alg_name=alg['titleSlug'])
+                if not total_num_sols:
+                    raise ValueError('Пустые данные')
+                logger.logger.info('COMPLETED -- get_total_number_sol -- ')
 
-            logger.logger.info('START -- get_algorithm_solutions --')
-            sols_alg = await get_algorithm_solutions(
-                session=session, url=URL_API, total_num=total_num_sols, alg_name=alg['titleSlug'])
-            if not sols_alg:
-                raise ValueError('Пустые данные')
-            logger.logger.info('COMPLETED -- get_algorithm_solutions -- ')
+                logger.logger.info('START -- get_algorithm_solutions --')
+                sols_alg = await get_algorithm_solutions(
+                    session=session, url=URL_API, total_num=total_num_sols, alg_name=alg['titleSlug'])
+                if not sols_alg:
+                    raise ValueError('Пустые данные')
+                logger.logger.info('COMPLETED -- get_algorithm_solutions -- ')
 
-            alg['sols'] = sols_alg
+                alg['sols'] = sols_alg
 
-            logger.logger.info('START -- saver_data --')
-            saver_data(data=alg, path=path_problems, name_obj=alg['titleSlug'])
-            logger.logger.info('COMPLETED -- saver_data -- ')
-
+                logger.logger.info('START -- saver_data --')
+                saver_data(data=alg, path=path_problems, name_obj=alg['titleSlug'])
+                logger.logger.info('COMPLETED -- saver_data -- ')
+    
 
 if __name__ == "__main__":
     asyncio.run(main())
