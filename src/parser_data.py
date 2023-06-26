@@ -49,7 +49,7 @@ async def retry_on_connection_error(
             logger.logger.warning(warning_message)
             if attempt == max_attempts:
                 message_error = (f'We have a problem in the {function.__name__}.\n'
-                                 + f'info: {info_}' + f'Exception: {e}')
+                                 + f'info: {info_}' + f'\nException: {e}')
                 logger.error_logger.error(message_error)
                 raise
             await asyncio.sleep(attempt_delay)
@@ -163,6 +163,9 @@ async def get_graphql_data_with_skip(
         alg_name: str,
         sem: Semaphore,
         skip: int = 0) -> dict[str, Any]:
+    debug_message = f'{alg_name=}, {skip=}'
+    logger.logger.debug(debug_message)
+
     first = 100
     variables = {
         "query": "",
@@ -247,13 +250,16 @@ async def main():
     path_problems = PATH_DATA.joinpath('problems')
     if not path_sol.exists() and not path_problems.exists():
         raise FileExistsError('Папок для хранения нет')
+
     queue = Queue()
     sem = Semaphore(50)
     flag = object()
+
     async with aiohttp.ClientSession() as session:
         total_num = await get_total_problems(
             session=session,
             url=URL_API, categorySlug="algorithms", sem=sem)
+
         algs_data = await get_alg_problems(
             session=session, url=URL_API, total_num=total_num,
             categorySlug="algorithms", sem=sem)
