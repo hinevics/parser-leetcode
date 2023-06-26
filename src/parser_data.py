@@ -32,15 +32,21 @@ async def saver_data(path: pathlib.PosixPath, name_obj: str, data: dict[str, Any
         await file.write(json.dumps(data))
 
 
-async def retry_on_connection_error(function: Coroutine,
-                                    max_attempts: int,
-                                    attempt_delay: int = 5,
-                                    info_: str = None):
+async def retry_on_connection_error(
+        function: Coroutine,
+        max_attempts: int = 3,
+        attempt_delay: int = 5,
+        info_: str = None, /,
+        *args,
+        **kwargs):
     for attempt in range(1, max_attempts + 1):
         try:
-            return await function
+            return await function(*args, **kwargs)
         except Exception as e:
-            logger.logger.warning(f"Communication error. Attempt {attempt}/{max_attempts},\nException: {e}")
+            warning_message = (
+                f"Communication error. Attempt {attempt}/{max_attempts}," +
+                f"\nException: {e}")
+            logger.logger.warning(warning_message)
             if attempt == max_attempts:
                 message_error = (f'We have a problem in the {function.__name__}.\n'
                                  + f'info: {info_}' + f'Exception: {e}')
@@ -49,16 +55,18 @@ async def retry_on_connection_error(function: Coroutine,
             await asyncio.sleep(attempt_delay)
 
 
-async def get_graphql_data(session: aiohttp.ClientSession,
-                           url: str, data: dict[str, Any], sem: Semaphore) -> dict[str, Any]:
+async def get_graphql_data(
+        session: aiohttp.ClientSession,
+        url: str, data: dict[str, Any], sem: Semaphore) -> dict[str, Any]:
     async with sem:
         async with session.post(url, json=data) as respons:
             a = await respons.json()
             return a
 
 
-async def get_total_problems(session: aiohttp.ClientSession,
-                             url: str, categorySlug: str, sem: Semaphore) -> int:
+async def get_total_problems(
+        session: aiohttp.ClientSession,
+        url: str, categorySlug: str, sem: Semaphore) -> int:
 
     variables = {
         "categorySlug": categorySlug,
@@ -93,8 +101,9 @@ async def get_total_problems(session: aiohttp.ClientSession,
     return total_problems
 
 
-async def get_alg_problems(session: aiohttp.ClientSession,
-                           url: str, total_num: int, categorySlug: str, sem: Semaphore) -> list[Any]:
+async def get_alg_problems(
+        session: aiohttp.ClientSession,
+        url: str, total_num: int, categorySlug: str, sem: Semaphore) -> list[Any]:
     variables = {
         "categorySlug": categorySlug,
         "limit": total_num,
@@ -107,9 +116,9 @@ async def get_alg_problems(session: aiohttp.ClientSession,
     }
 
     message_inf = f'{url=}, {total_num=}'
-    data = await retry_on_connection_error(get_graphql_data(
-                    session=session, url=url,
-                    data=query_problemset_question_list, sem=sem), max_attempts=3, info_=message_inf)
+    data = await retry_on_connection_error(
+        get_graphql_data, 3, message_inf, session=session, url=url,
+        data=query_problemset_question_list, sem=sem)
 
     questions = data['data']['problemsetQuestionList']['questions']
     logger.logger.debug(f'get_alg_problems::{len(questions)=}')
@@ -170,8 +179,8 @@ async def get_graphql_data_with_skip(
         "operationName": "communitySolutions"
     }
     return await retry_on_connection_error(
-        get_graphql_data(session=session, url=url, data=query_sols_for_problem, sem=sem), max_attempts=3
-    )
+        get_graphql_data, 3, session=session, url=url,
+        data=query_sols_for_problem, sem=sem)
 
 
 async def get_algorithm_solutions(
@@ -201,8 +210,11 @@ async def set_algs_data_queue(algs_data: list, queue: Queue, flag: Any):
     await queue.put(flag)
 
 
-async def get_sols(queue: Queue, flag: Any,
-                   session: aiohttp.ClientSession, path_problems: pathlib.PosixPath, sem: Semaphore):
+async def get_sols(
+        queue: Queue,
+        flag: Any,
+        session: aiohttp.ClientSession,
+        path_problems: pathlib.PosixPath, sem: Semaphore):
     while (alg := await queue.get()) is not flag:
         logger.logger.info('START -- get_total_number_sol --')
         total_num_sols = await get_total_number_sol(
@@ -249,43 +261,13 @@ async def main():
             raise ValueError('Пустые данные')
 
         await asyncio.gather(
-            get_sols(queue=queue, session=session, path_problems=path_problems, flag=flag, sem=sem),
-            set_algs_data_queue(algs_data=algs_data, queue=queue, flag=flag))
-
-        # for alg in algs_data:
-        #     try:
-        #         logger.logger.info('START -- get_total_number_sol --')
-        #         total_num_sols = await get_total_number_sol(
-        #             session=session, url=URL_API, alg_name=alg['titleSlug'])
-        #         if not total_num_sols:
-        #             raise ValueError('Пустые данные')
-        #         logger.logger.info('COMPLETED -- get_total_number_sol -- ')
-
-        #         logger.logger.info('START -- get_algorithm_solutions --')
-        #         sols_alg = await get_algorithm_solutions(
-        #             session=session,
-        #             url=URL_API,
-        #             total_num=total_num_sols,
-        #             alg_name=alg['titleSlug']
-        #         )
-        #         if not sols_alg:
-        #             raise ValueError('Пустые данные')
-        #         logger.logger.info('COMPLETED -- get_algorithm_solutions -- ')
-
-        #         alg['sols'] = sols_alg
-
-        #         logger.logger.info('START -- saver_data --')
-        #         saver_data(data=alg, path=path_problems, name_obj=alg['titleSlug'])
-        #         logger.logger.info('COMPLETED -- saver_data -- ')
-        #     except Exception as e:
-        #         error_message = (
-        #             'We have a problem in the get_total_problems.\n' +
-        #             'The problem occurred with the following attributes:\n' +
-        #             f"{alg['titleSlug']=}" +
-        #             f'Exception:\n{e}'
-        #         )
-        #         logger.error_logger.error(error_message)
-        #         continue
+            get_sols(
+                queue=queue,
+                session=session,
+                path_problems=path_problems,
+                flag=flag,
+                sem=sem
+            ), set_algs_data_queue(algs_data=algs_data, queue=queue, flag=flag))
 
 
 if __name__ == "__main__":
