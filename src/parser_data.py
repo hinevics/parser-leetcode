@@ -231,9 +231,6 @@ async def get_sols(
         logger.logger.info('START -- get_total_number_sol --')
         total_num_sols = await get_total_number_sol(
             session=session, url=URL_API, alg_name=alg['titleSlug'], sem=sem)
-        # if not total_num_sols:
-        #     break
-            # raise ValueError('Пустые данные')
         logger.logger.info('COMPLETED -- get_total_number_sol -- ')
 
         logger.logger.info('START -- get_algorithm_solutions --')
@@ -244,9 +241,6 @@ async def get_sols(
             alg_name=alg['titleSlug'],
             sem=sem
         )
-        # if not sols_alg:
-        #     break
-            # raise ValueError('Пустые данные')
         logger.logger.info('COMPLETED -- get_algorithm_solutions -- ')
 
         alg['sols'] = sols_alg

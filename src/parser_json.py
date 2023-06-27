@@ -74,11 +74,13 @@ def saver_data(data: pd.DataFrame, path: pathlib.PosixPath, name: str):
 
 
 if __name__ == "__main__":
+    data = []
     for jd in laod_file(PATH_DATA_PROBLEMS):
         logger.logger.info('START -- parsing data -- ')
-        data = parser_json(jd)
+        df = parser_json(jd)
+        data.append(df)
         logger.logger.info('COMPLETED -- parsing data -- ')
-        logger.logger.info('START -- saving data -- ')
-        saver_data(data, PATH_DATA_SOLS, name=jd['titleSlug'])
-        logger.logger.info('COMPLETED -- saving data -- ')
-        break
+    data = pd.concat(data)
+    logger.logger.info('START -- saving data -- ')
+    saver_data(data, PATH_DATA_SOLS, name='all')
+    logger.logger.info('COMPLETED -- saving data -- ')
