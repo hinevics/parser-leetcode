@@ -1,4 +1,5 @@
-# import glob
+import os
+import glob
 import asyncio
 from asyncio import Queue, Semaphore
 import aiohttp
@@ -21,6 +22,7 @@ headers = {
     'Accept-Encoding': 'gzip, deflate, br',
     'Content-Type': 'application/json; charset=utf-8'
 }
+
 
 PATH_DATA = pathlib.Path(PATH_DATA)
 
@@ -117,7 +119,7 @@ async def get_alg_problems(
 
     message_inf = f'{url=}, {total_num=}'
     data = await retry_on_connection_error(
-        get_graphql_data, 3, message_inf, session=session, url=url,
+        get_graphql_data, 3, 5, message_inf, session=session, url=url,
         data=query_problemset_question_list, sem=sem)
 
     questions = data['data']['problemsetQuestionList']['questions']
@@ -141,7 +143,10 @@ async def get_total_number_sol(session: aiohttp.ClientSession,
         'variables': variables,
         "operationName": "communitySolutions"
     }
-    data = await get_graphql_data(
+
+    message_inf = f'{url=}, {alg_name=}'
+    data = await retry_on_connection_error(
+        get_graphql_data, 3, 5, message_inf,
         session=session,
         url=url,
         data=query_total_number_sols_for_problem,
@@ -181,8 +186,9 @@ async def get_graphql_data_with_skip(
         'variables': variables,
         "operationName": "communitySolutions"
     }
+    info = ''
     return await retry_on_connection_error(
-        get_graphql_data, 3, session=session, url=url,
+        get_graphql_data, 3, 5, info, session=session, url=url,
         data=query_sols_for_problem, sem=sem)
 
 
@@ -208,8 +214,11 @@ async def get_algorithm_solutions(
 
 async def set_algs_data_queue(algs_data: list, queue: Queue, flag: Any):
     for alg in algs_data:
-        await queue.put(alg)
-
+        if not (f"{alg['titleSlug']}.json" in available_algs):
+            await queue.put(alg)
+        else:
+            debug_message = f"{alg['titleSlug']} already uploaded."
+            logger.logger.debug(debug_message)
     await queue.put(flag)
 
 
@@ -222,8 +231,9 @@ async def get_sols(
         logger.logger.info('START -- get_total_number_sol --')
         total_num_sols = await get_total_number_sol(
             session=session, url=URL_API, alg_name=alg['titleSlug'], sem=sem)
-        if not total_num_sols:
-            raise ValueError('Пустые данные')
+        # if not total_num_sols:
+        #     break
+            # raise ValueError('Пустые данные')
         logger.logger.info('COMPLETED -- get_total_number_sol -- ')
 
         logger.logger.info('START -- get_algorithm_solutions --')
@@ -234,8 +244,9 @@ async def get_sols(
             alg_name=alg['titleSlug'],
             sem=sem
         )
-        if not sols_alg:
-            raise ValueError('Пустые данные')
+        # if not sols_alg:
+        #     break
+            # raise ValueError('Пустые данные')
         logger.logger.info('COMPLETED -- get_algorithm_solutions -- ')
 
         alg['sols'] = sols_alg
@@ -245,11 +256,20 @@ async def get_sols(
         logger.logger.info('COMPLETED -- saver_data -- ')
 
 
+def get_available_algorithms(path: pathlib.PosixPath) -> list[str]:
+    file_list = glob.glob(str(path) + '/' + '*.json')
+    file_names = [os.path.basename(file) for file in file_list]
+
+    return file_names
+
+
 async def main():
     path_sol = PATH_DATA.joinpath('sols')
     path_problems = PATH_DATA.joinpath('problems')
     if not path_sol.exists() and not path_problems.exists():
         raise FileExistsError('Папок для хранения нет')
+    global available_algs
+    available_algs = get_available_algorithms(path_problems)
 
     queue = Queue()
     sem = Semaphore(50)
