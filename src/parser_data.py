@@ -311,7 +311,9 @@ async def main():
                 path_problems=path_problems,
                 flag=flag,
                 sem=sem
-            ), set_algs_data_queue(algs_data=algs_data, queue=queue, flag=flag))
+            ), set_algs_data_queue(
+                algs_data=algs_data,
+                available_list=available_algs, queue=queue, flag=flag))
         await asyncio.gather(
             get_question(
                 queue=queue,
