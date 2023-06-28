@@ -157,11 +157,6 @@ async def get_total_number_sol(session: aiohttp.ClientSession,
     return totalNum
 
 
-def parser_sol(data: dict[str, Any]) -> dict[str, Any]:
-    # тут доп процессинг
-    return data
-
-
 async def get_graphql_data_with_skip(
         session: aiohttp.ClientSession,
         url: str,
@@ -212,14 +207,43 @@ async def get_algorithm_solutions(
     return data
 
 
-async def set_algs_data_queue(algs_data: list, queue: Queue, flag: Any):
+async def set_algs_data_queue(
+        algs_data: list,
+        available_list: list[str],
+        queue: Queue, flag: Any):
     for alg in algs_data:
-        if not (f"{alg['titleSlug']}.json" in available_algs):
+        if not (f"{alg['titleSlug']}.json" in available_list):
             await queue.put(alg)
         else:
             debug_message = f"{alg['titleSlug']} already uploaded."
             logger.logger.debug(debug_message)
     await queue.put(flag)
+
+
+async def get_question(
+        queue: Queue,
+        flag: Any,
+        session: aiohttp.ClientSession,
+        path_problems: pathlib.PosixPath, sem: Semaphore):
+    while (alg := await queue.get()) is not flag:
+        logger.logger.info('START -- get_question --')
+        logger.logger.debug(f"get_question::{alg['titleSlug']}")
+        variables = {"titleSlug": alg['titleSlug']}
+        query_question = {
+            'query': graphql_api_queries.query_question_сontent,
+            'variables': variables,
+            'operationName': "questionContent"
+            }
+        info = f"titleSlug::{alg['titleSlug']}"
+        logger.logger.info('START -- load data --')
+        data = await retry_on_connection_error(
+            get_graphql_data, 3, 5, info, session=session, url=URL_API,
+            data=query_question, sem=sem)
+        logger.logger.info('COMPLETED -- load data -- ')
+        logger.logger.info('START -- saver_data --')
+        logger.logger.debug(f"saver::{alg['titleSlug']}")
+        await saver_data(data=data, path=path_problems, name_obj=alg['titleSlug'])
+        logger.logger.info('COMPLETED -- saver_data -- ')
 
 
 async def get_sols(
@@ -260,11 +284,11 @@ def get_available_algorithms(path: pathlib.PosixPath) -> list[str]:
 async def main():
     path_sol = PATH_DATA.joinpath('sols')
     path_problems = PATH_DATA.joinpath('problems')
+    path_question = PATH_DATA.joinpath('question')
     if not path_sol.exists() and not path_problems.exists():
         raise FileExistsError('Папок для хранения нет')
-    global available_algs
     available_algs = get_available_algorithms(path_problems)
-
+    list_question = get_available_algorithms(path_question)
     queue = Queue()
     sem = Semaphore(50)
     flag = object()
@@ -280,14 +304,27 @@ async def main():
         if not algs_data:
             raise ValueError('Пустые данные')
 
+        # await asyncio.gather(
+        #     get_sols(
+        #         queue=queue,
+        #         session=session,
+        #         path_problems=path_problems,
+        #         flag=flag,
+        #         sem=sem
+        #     ), set_algs_data_queue(algs_data=algs_data, queue=queue, flag=flag))
         await asyncio.gather(
-            get_sols(
+            get_question(
                 queue=queue,
                 session=session,
-                path_problems=path_problems,
+                path_problems=path_question,
                 flag=flag,
                 sem=sem
-            ), set_algs_data_queue(algs_data=algs_data, queue=queue, flag=flag))
+            ), set_algs_data_queue(
+                algs_data=algs_data,
+                available_list=list_question,
+                queue=queue,
+                flag=flag)
+        )
 
 
 if __name__ == "__main__":

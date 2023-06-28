@@ -100,3 +100,12 @@ query communitySolutions(
   }
 }
 """
+
+query_question_сontent = """
+    query questionContent($titleSlug: String!) {
+        question(titleSlug: $titleSlug) {
+            content
+            mysqlSchemas
+        }
+    }
+"""
