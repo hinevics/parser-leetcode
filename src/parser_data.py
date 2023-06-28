@@ -304,14 +304,14 @@ async def main():
         if not algs_data:
             raise ValueError('Пустые данные')
 
-        # await asyncio.gather(
-        #     get_sols(
-        #         queue=queue,
-        #         session=session,
-        #         path_problems=path_problems,
-        #         flag=flag,
-        #         sem=sem
-        #     ), set_algs_data_queue(algs_data=algs_data, queue=queue, flag=flag))
+        await asyncio.gather(
+            get_sols(
+                queue=queue,
+                session=session,
+                path_problems=path_problems,
+                flag=flag,
+                sem=sem
+            ), set_algs_data_queue(algs_data=algs_data, queue=queue, flag=flag))
         await asyncio.gather(
             get_question(
                 queue=queue,
