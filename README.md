@@ -1,7 +1,5 @@
 # LeetCode Task Collector
 
-![LeetCode](https://leetcode.com/static/images/LeetCode_logo.png)
-
 The LeetCode Task Collector project aims to gather algorithmic tasks from leetcode.com. It collects all the necessary information about each task, including the task description, available solution options, ratings of the creators, and other relevant details.
 
 ## Project Description
